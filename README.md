@@ -4,7 +4,6 @@
 [![PyPI](https://img.shields.io/pypi/v/napari-zarr-io.svg?color=green)](https://pypi.org/project/napari-zarr-io)
 [![Python Version](https://img.shields.io/pypi/pyversions/napari-zarr-io.svg?color=green)](https://python.org)
 [![tests](https://github.com/manzt/napari-zarr-io/workflows/tests/badge.svg)](https://github.com/manzt/napari-zarr-io/actions)
-[![codecov](https://codecov.io/gh/manzt/napari-zarr-io/branch/master/graph/badge.svg)](https://codecov.io/gh/manzt/napari-zarr-io)
 
 A more feature-complete zarr reader plugin for napari.
 
@@ -25,6 +24,42 @@ https://napari.org/docs/plugins/index.html
 You can install `napari-zarr-io` via [pip]:
 
     pip install napari-zarr-io
+    
+## Description
+This napari reader plugin is meant to handle opening both zarr `group` and `array` from a local `zarr.DirectoryStore`.
+It will **not** return a reader for the zarr [multiscales extension](https://github.com/zarr-developers/zarr-specs/issues/50) (check out [`ome-zarr-py`](https://github.com/ome/ome-zarr-py) for this use case) or remote zarr arrays.
+
+### Example zarr store
+
+```bash
+examples/channels_astronaut.zarr
+├── .zgroup
+├── blue
+│   ├── .zarray
+│   ├── 0.0
+│   └── 1.0
+├── green
+│   ├── .zarray
+│   ├── 0.0
+│   └── 1.0
+└── red
+    ├── .zarray
+    ├── 0.0
+    └── 1.0
+```
+
+### Open arrays within `zarr.Group` as separate image layers  
+
+```bash
+$ napari examples/channels_astronaut.zarr # adds red, green, blue image layers
+```
+
+### Open a `zarr.Array` as an image layer
+
+```bash
+$ napari examples/channels_astronaut.zarr/blue # adds one image layer
+```
+
 
 ## Contributing
 

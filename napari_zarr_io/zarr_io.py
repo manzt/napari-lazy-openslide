@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 import dask.array as da
 import zarr
 
+
 @napari_hook_implementation
 def napari_get_reader(path):
     """A basic implementation of the napari_get_reader hook specification.
@@ -34,15 +35,15 @@ def napari_get_reader(path):
     if isinstance(path, list):
         return None
 
-    if not any(part.endswith('.zarr') for part in Path(path).parts):
+    if not any(part.endswith(".zarr") for part in Path(path).parts):
         # Don't try to handle if .zarr isn't in path
-        return None 
-    
-    if urlparse(path).scheme not in ("", "file"):
-        # TODO: open remote path (S3, GCS) if array ? 
         return None
-    
-    z = zarr.open(path, mode='r')
+
+    if urlparse(path).scheme not in ("", "file"):
+        # TODO: open remote path (S3, GCS) if array ?
+        return None
+
+    z = zarr.open(path, mode="r")
     if isinstance(z, zarr.Group):
         if "multiscales" in z.attrs:
             # Don't handle multiscale extension
@@ -74,41 +75,18 @@ def reader_function(path):
         Both "meta", and "layer_type" are optional napari will default to
         layer_type=="image" if not provided
     """
-    # Either a group or an array 
-    z = zarr.open(path, mode='r')
+    # Either a group or an array
+    z = zarr.open(path, mode="r")
 
-    if isinstance(z, zarr.Array): 
-        add_kwargs = { "name": Path(path).name }
-        print(da.from_zarr(z))
+    if isinstance(z, zarr.Array):
+        add_kwargs = {"name": Path(path).name}
         return [(da.from_zarr(z), add_kwargs)]
 
     # Case where path is a zarr.Group
     layers = []
     for key in sorted(z.array_keys()):
         array = da.from_zarr(z.get(key))
-        add_kwargs = { "name": key }
+        add_kwargs = {"name": key}
         layers.append((array, add_kwargs))
 
     return layers
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
