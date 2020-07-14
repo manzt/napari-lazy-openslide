@@ -34,11 +34,12 @@ jobs:
     runs-on: ${{ matrix.platform }}
     strategy:
       matrix:
-        platform: [macos-latest, windows-latest]
+        # platform [macos-latest, windows-latest] 
+        platform: [macos-latest]
     steps:
       - uses: actions/checkout@v2
       - name: Install openslide on mac
-        if: ${{ matrix.platform == 'macos-latest'}}
+        if: ${{ matrix.platform == 'macos-latest' }}
         run: brew install openslide
       - name: Set up Python 3.6
         uses: actions/setup-python@v1
