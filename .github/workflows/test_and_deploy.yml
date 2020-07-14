@@ -14,6 +14,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - name: Install openslide
+        run: sudo apt-get install openslide-tools
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
         with:
