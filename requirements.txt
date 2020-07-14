@@ -2,5 +2,4 @@ napari-plugin-engine>=0.1.4
 numpy>=0.1.19
 zarr>=0.2.4
 dask[array]>=2.20.0
-setuptools==45 # https://github.com/pypa/setuptools/issues/2017
-openslide-python>=1.1.1
+openslide-wrapper==1.1.2
