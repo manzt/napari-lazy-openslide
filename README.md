@@ -1,11 +1,11 @@
-# napari-zarr-io
+# napari-lazy-openslide
 
-[![License](https://img.shields.io/pypi/l/napari-zarr-io.svg?color=green)](https://github.com/napari/napari-zarr-io/raw/master/LICENSE)
-[![PyPI](https://img.shields.io/pypi/v/napari-zarr-io.svg?color=green)](https://pypi.org/project/napari-zarr-io)
-[![Python Version](https://img.shields.io/pypi/pyversions/napari-zarr-io.svg?color=green)](https://python.org)
-[![tests](https://github.com/manzt/napari-zarr-io/workflows/tests/badge.svg)](https://github.com/manzt/napari-zarr-io/actions)
+[![License](https://img.shields.io/pypi/l/napari-lazy-openslide.svg?color=green)](https://github.com/napari/napari-lazy-openslide/raw/master/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/napari-lazy-openslide.svg?color=green)](https://pypi.org/project/napari-lazy-openslide)
+[![Python Version](https://img.shields.io/pypi/pyversions/napari-lazy-openslide.svg?color=green)](https://python.org)
+[![tests](https://github.com/manzt/napari-lazy-openslide/workflows/tests/badge.svg)](https://github.com/manzt/napari-lazy-openslide/actions)
 
-A more feature-complete zarr reader plugin for napari.
+A plugin to lazily load multiscale whole-slide images with openslide and dask.
 
 ----------------------------------
 
@@ -21,43 +21,23 @@ https://napari.org/docs/plugins/index.html
 
 ## Installation
 
-You can install `napari-zarr-io` via [pip]:
+You can install `napari-lazy-openslide` via [pip]:
 
-    pip install napari-zarr-io
-    
-## Description
-This napari reader plugin is meant to handle opening both zarr `group` and `array` from a local `zarr.DirectoryStore`.
-It will **not** return a reader for the zarr [multiscales extension](https://github.com/zarr-developers/zarr-specs/issues/50) (check out [`ome-zarr-py`](https://github.com/ome/ome-zarr-py) for this use case) or remote zarr arrays.
+    pip install napari-lazy-openslide
 
-### Example zarr store
+## Usage
 
-```bash
-examples/channels_astronaut.zarr
-├── .zgroup
-├── blue
-│   ├── .zarray
-│   ├── 0.0
-│   └── 1.0
-├── green
-│   ├── .zarray
-│   ├── 0.0
-│   └── 1.0
-└── red
-    ├── .zarray
-    ├── 0.0
-    └── 1.0
-```
+This plugin tries to be conservative with what files it will attempt to provide a reader.
+It will only attempt to read `.tif` and `.tiff` files that `openslide` will open and are 
+detected as multiscale (`openslide.OpenSlide(file).level_count > 1`). Under the hood, 
+`napari-lazy-openslide` wraps the `openslide` reader with a valid `zarr.Store` where each 
+each pyramidal level is exposed as a separate `zarr.Array` with shape `(y,x,4)`.
 
-### Open arrays within `zarr.Group` as separate image layers  
+The plugin is experimental and has only been tested with `CAMELYON16` and `CAMELYON17` datasets, 
+which can be downloaded [here](https://camelyon17.grand-challenge.org/Data/).
 
 ```bash
-$ napari examples/channels_astronaut.zarr # adds red, green, blue image layers
-```
-
-### Open a `zarr.Array` as an image layer
-
-```bash
-$ napari examples/channels_astronaut.zarr/blue # adds one image layer
+$ napari tumor_004.tif
 ```
 
 
@@ -69,7 +49,7 @@ the coverage at least stays the same before you submit a pull request.
 ## License
 
 Distributed under the terms of the [BSD-3] license,
-"napari-zarr-io" is free and open source software
+"napari-lazy-openslide" is free and open source software
 
 ## Issues
 
@@ -85,7 +65,7 @@ If you encounter any problems, please [file an issue] along with a detailed desc
 [Apache Software License 2.0]: http://www.apache.org/licenses/LICENSE-2.0
 [Mozilla Public License 2.0]: https://www.mozilla.org/media/MPL/2.0/index.txt
 [cookiecutter-napari-plugin]: https://github.com/napari/cookiecutter-napari-plugin
-[file an issue]: https://github.com/manzt/napari-zarr-io/issues
+[file an issue]: https://github.com/manzt/napari-lazy-openslide/issues
 [napari]: https://github.com/napari/napari
 [tox]: https://tox.readthedocs.io/en/latest/
 [pip]: https://pypi.org/project/pip/
