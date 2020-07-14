@@ -40,6 +40,7 @@ which can be downloaded [here](https://camelyon17.grand-challenge.org/Data/).
 $ napari tumor_004.tif
 ```
 
+![Interactive deep zoom of whole-slide image](tumor_004.gif)
 
 ## Contributing
 
