@@ -1,6 +1,6 @@
 # napari-lazy-openslide
 
-[![License](https://img.shields.io/pypi/l/napari-lazy-openslide.svg)](https://github.com/manzt/napari-lazy-openslide/raw/master/LICENSE)
+[![License](https://img.shields.io/pypi/l/napari-lazy-openslide.svg?color=green)](https://github.com/manzt/napari-lazy-openslide/raw/master/LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/napari-lazy-openslide.svg?color=green)](https://pypi.org/project/napari-lazy-openslide)
 [![Python Version](https://img.shields.io/pypi/pyversions/napari-lazy-openslide.svg?color=green)](https://python.org)
 [![tests](https://github.com/manzt/napari-lazy-openslide/workflows/tests/badge.svg)](https://github.com/manzt/napari-lazy-openslide/actions)
@@ -21,7 +21,9 @@ https://napari.org/docs/plugins/index.html
 
 ## Installation
 
-You can install `napari-lazy-openslide` via [pip]:
+**Step 1.)** Make sure you have OpenSlide installed. Download instructions [here](https://openslide.org/download/).
+
+**Step 2.)** Install `napari-lazy-openslide` via [pip]:
 
     pip install napari-lazy-openslide
 
