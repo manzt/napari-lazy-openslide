@@ -1,76 +1,87 @@
-"""
-This module is an example of a barebones numpy reader plugin for napari.
-
-It implements the ``napari_get_reader`` hook specification, (to create
-a reader plugin) but your plugin may choose to implement any of the hook
-specifications offered by napari.
-see: https://napari.org/docs/plugins/hook_specifications.html
-
-Replace code below accordingly.  For complete documentation see:
-https://napari.org/docs/plugins/for_plugin_developers.html
-"""
 import numpy as np
 from napari_plugin_engine import napari_hook_implementation
 from openslide import OpenSlide, OpenSlideUnsupportedFormatError, PROPERTY_NAME_COMMENT
 import zarr
+from zarr.util import json_dumps
 import dask.array as da
 from pathlib import Path
 
-array_meta_key = ".zarray"
-group_meta_key = ".zgroup"
-group_meta = {"zarr_format": 2}
+ZARR_FORMAT = 2
+ZARR_META_KEY = ".zattrs"
+ZARR_ARRAY_META_KEY = ".zarray"
+ZARR_GROUP_META_KEY = ".zgroup"
+ZARR_GROUP_META = {"zarr_format": ZARR_FORMAT}
 
 
 def create_array_meta(shape, chunks):
     return {
         "chunks": chunks,
         "compressor": None,  # chunk is decoded by openslide, so no zarr compression
-        "dtype": "|u1",
+        "dtype": "|u1",  # RGB/A images only
         "fill_value": 0.0,
         "filters": None,
         "order": "C",
         "shape": shape,
-        "zarr_format": 2,
+        "zarr_format": ZARR_FORMAT,
     }
+
+
+def create_root_attrs(levels):
+    datasets = [{"path": str(i)} for i in range(levels)]
+    return {"multiscales": [{"datasets": datasets, "version": "0.1"}]}
 
 
 class OpenSlideStore:
     def __init__(self, path, tilesize=1024):
-        self.slide = OpenSlide(path)
-        self.tilesize = tilesize
+        self._slide = OpenSlide(path)
+        self._tilesize = tilesize
+        self._store = self._init_store()
 
     def __getitem__(self, key):
-        if key == group_meta_key:
-            return group_meta
+        if key in self._store:
+            # ascii encoded json metadata
+            return self._store[key]
 
-        level, rest = key.split("/")
+        # key should now be a path to an array chunk
+        # e.g '3/4.5.0' -> '<level>/<chunk_key>'
+        level, chunk_key = key.split("/")
         level = int(level)
-        if rest == array_meta_key:
-            xshape, yshape = self.slide.level_dimensions[level]
-            return create_array_meta(
-                shape=(yshape, xshape, 4), chunks=(self.tilesize, self.tilesize, 4)
-            )
-
-        tile = self.slide.read_region(
-            self._get_reference_pos(rest, level), level, (self.tilesize, self.tilesize),
+        tile = self._slide.read_region(
+            location=self._get_reference_pos(chunk_key, level),
+            level=level,
+            size=(self._tilesize, self._tilesize),
         )
-
+        # convert to numpy array and return uncompressed bytes
         return np.array(tile).tobytes()
 
     def _get_reference_pos(self, chunk_key, level):
+        # Don't need channel key, always 0
         y, x, _ = [int(k) for k in chunk_key.split(".")]
-        dsample = self.slide.level_downsamples[level]
-        xref = int(x * dsample * self.tilesize)
-        yref = int(y * dsample * self.tilesize)
+        dsample = self._slide.level_downsamples[level]
+        xref = int(x * dsample * self._tilesize)
+        yref = int(y * dsample * self._tilesize)
         return xref, yref
 
+    def _init_store(self):
+        d = dict()
+        levels = self._slide.level_count
+        # Create group and add multiscale metadata
+        d[ZARR_GROUP_META_KEY] = json_dumps(ZARR_GROUP_META)
+        d[ZARR_META_KEY] = json_dumps(create_root_attrs(levels))
+        # Create array metadata for each pyramid level
+        for level in range(levels):
+            xshape, yshape = self._slide.level_dimensions[level]
+            array_meta = create_array_meta(
+                shape=(yshape, xshape, 4), chunks=(self._tilesize, self._tilesize, 4)
+            )
+            d[f"{level}/{ZARR_ARRAY_META_KEY}"] = json_dumps(array_meta)
+        return d
+
     def keys(self):
-        yield group_meta_key
-        for i in range(self.slide.level_count):
-            yield f"{i}/{array_meta_key}"
+        return self._store.keys()
 
     def __iter__(self):
-        return self.keys()
+        return iter(self._store)
 
 
 @napari_hook_implementation
@@ -130,6 +141,8 @@ def reader_function(path):
     layer_data : list of LayerData tuples
     """
     store = OpenSlideStore(path)
-    pyramid = [da.from_zarr(store, component=k) for k in zarr.open(store).array_keys()]
+    z_grp = zarr.open(store, mode="r")
+    datasets = z_grp.attrs["multiscales"][0]["datasets"]
+    pyramid = [da.from_zarr(store, component=d["path"]) for d in datasets]
     add_kwargs = {"name": Path(path).name}
     return [(pyramid, add_kwargs)]
