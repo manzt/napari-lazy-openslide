@@ -5,7 +5,7 @@
 [![Python Version](https://img.shields.io/pypi/pyversions/napari-lazy-openslide.svg?color=green)](https://python.org)
 [![tests](https://github.com/manzt/napari-lazy-openslide/workflows/tests/badge.svg)](https://github.com/manzt/napari-lazy-openslide/actions)
 
-A plugin to lazily load multiscale whole-slide images with openslide and dask.
+An experimental plugin to lazily load multiscale whole-slide tiff images with openslide and dask.
 
 ----------------------------------
 
@@ -31,7 +31,7 @@ https://napari.org/docs/plugins/index.html
 
 This plugin tries to be conservative with what files it will attempt to provide a reader.
 It will only attempt to read `.tif` and `.tiff` files that `openslide` will open and are 
-detected as multiscale (`openslide.OpenSlide(file).level_count > 1`). Under the hood, 
+detected as multiscale (`openslide.OpenSlide.level_count > 1`). Under the hood, 
 `napari-lazy-openslide` wraps the `openslide` reader with a valid `zarr.Store` where each 
 each pyramidal level is exposed as a separate `zarr.Array` with shape `(y,x,4)`.
 
