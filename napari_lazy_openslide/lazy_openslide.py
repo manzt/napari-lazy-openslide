@@ -13,10 +13,12 @@ ZARR_GROUP_META_KEY = ".zgroup"
 ZARR_GROUP_META = {"zarr_format": ZARR_FORMAT}
 
 
-def create_array_meta(shape, chunks):
+def create_array_meta(shape, chunks, compressor):
     return {
         "chunks": chunks,
-        "compressor": None,  # chunk is decoded by openslide, so no zarr compression
+        "compressor": compressor.get_config()
+        if compressor
+        else None,  # chunk is decoded by openslide, so no zarr compression
         "dtype": "|u1",  # RGB/A images only
         "fill_value": 0.0,
         "filters": None,
@@ -32,7 +34,8 @@ def create_root_attrs(levels):
 
 
 class OpenSlideStore:
-    def __init__(self, path, tilesize=1024):
+    def __init__(self, path, tilesize=1024, compressor=None):
+        self._compressor = compressor
         self._slide = OpenSlide(path)
         self._tilesize = tilesize
         self._store = self._init_store()
@@ -44,15 +47,27 @@ class OpenSlideStore:
 
         # key should now be a path to an array chunk
         # e.g '3/4.5.0' -> '<level>/<chunk_key>'
-        level, chunk_key = key.split("/")
-        level = int(level)
-        tile = self._slide.read_region(
-            location=self._get_reference_pos(chunk_key, level),
-            level=level,
-            size=(self._tilesize, self._tilesize),
-        )
-        # convert to numpy array and return uncompressed bytes
-        return np.array(tile).tobytes()
+        try:
+            level, chunk_key = key.split("/")
+            level = int(level)
+            tile = self._slide.read_region(
+                location=self._get_reference_pos(chunk_key, level),
+                level=level,
+                size=(self._tilesize, self._tilesize),
+            )
+        except:
+            raise KeyError
+
+        # convert to numpy array and get underlying bytes
+        dbytes = np.array(tile).tobytes()
+
+        if self._compressor:
+            # If a zarr compressor is provided, compress the bytes
+            # This is completely optional and only useful when
+            # remote access to the store is desired.
+            return self._compressor.encode(dbytes)
+
+        return dbytes
 
     def _get_reference_pos(self, chunk_key, level):
         # Don't need channel key, always 0
@@ -72,7 +87,9 @@ class OpenSlideStore:
         for level in range(levels):
             xshape, yshape = self._slide.level_dimensions[level]
             array_meta = create_array_meta(
-                shape=(yshape, xshape, 4), chunks=(self._tilesize, self._tilesize, 4)
+                shape=(yshape, xshape, 4),
+                chunks=(self._tilesize, self._tilesize, 4),
+                compressor=self._compressor,
             )
             d[f"{level}/{ZARR_ARRAY_META_KEY}"] = json_dumps(array_meta)
         return d
