@@ -1,36 +1,19 @@
 import numpy as np
 from napari_plugin_engine import napari_hook_implementation
 from openslide import OpenSlide, OpenSlideUnsupportedFormatError, PROPERTY_NAME_COMMENT
-import zarr
-from zarr.util import json_dumps
 import dask.array as da
 from pathlib import Path
 
-ZARR_FORMAT = 2
-ZARR_META_KEY = ".zattrs"
-ZARR_ARRAY_META_KEY = ".zarray"
-ZARR_GROUP_META_KEY = ".zgroup"
-ZARR_GROUP_META = {"zarr_format": ZARR_FORMAT}
+import zarr
+from zarr.util import json_dumps
+from zarr.storage import array_meta_key, group_meta_key, attrs_key
+from zarr.meta import encode_array_metadata, encode_group_metadata
 
 
-def create_array_meta(shape, chunks, compressor):
-    return {
-        "chunks": chunks,
-        "compressor": compressor.get_config()
-        if compressor
-        else None,  # chunk is decoded by openslide, so no zarr compression
-        "dtype": "|u1",  # RGB/A images only
-        "fill_value": 0.0,
-        "filters": None,
-        "order": "C",
-        "shape": shape,
-        "zarr_format": ZARR_FORMAT,
-    }
-
-
-def create_root_attrs(levels):
+def encode_root_attrs(levels):
     datasets = [{"path": str(i)} for i in range(levels)]
-    return {"multiscales": [{"datasets": datasets, "version": "0.1"}]}
+    root_attrs = dict(multiscales=[dict(datasets=datasets, version="0.1")])
+    return json_dumps(root_attrs)
 
 
 class OpenSlideStore:
@@ -44,7 +27,6 @@ class OpenSlideStore:
         if key in self._store:
             # ascii encoded json metadata
             return self._store[key]
-
         # key should now be a path to an array chunk
         # e.g '3/4.5.0' -> '<level>/<chunk_key>'
         try:
@@ -57,16 +39,13 @@ class OpenSlideStore:
             )
         except:
             raise KeyError
-
         # convert to numpy array and get underlying bytes
         dbytes = np.array(tile).tobytes()
-
         if self._compressor:
             # If a zarr compressor is provided, compress the bytes
             # This is completely optional and only useful when
             # remote access to the store is desired.
             return self._compressor.encode(dbytes)
-
         return dbytes
 
     def _get_reference_pos(self, chunk_key, level):
@@ -81,17 +60,21 @@ class OpenSlideStore:
         d = dict()
         levels = self._slide.level_count
         # Create group and add multiscale metadata
-        d[ZARR_GROUP_META_KEY] = json_dumps(ZARR_GROUP_META)
-        d[ZARR_META_KEY] = json_dumps(create_root_attrs(levels))
+        d[group_meta_key] = encode_group_metadata()
+        d[attrs_key] = encode_root_attrs(levels)
         # Create array metadata for each pyramid level
+        base_meta = dict(
+            chunks=(self._tilesize, self._tilesize, 4),
+            compressor=self._compressor.get_config() if self._compressor else None,
+            dtype=np.dtype("uint8"),
+            fill_value=0,
+            filters=None,
+            order="C",
+        )
         for level in range(levels):
             xshape, yshape = self._slide.level_dimensions[level]
-            array_meta = create_array_meta(
-                shape=(yshape, xshape, 4),
-                chunks=(self._tilesize, self._tilesize, 4),
-                compressor=self._compressor,
-            )
-            d[f"{level}/{ZARR_ARRAY_META_KEY}"] = json_dumps(array_meta)
+            meta = dict(shape=(yshape, xshape, 4), **base_meta)
+            d[str(level) + "/" + array_meta_key] = encode_array_metadata(meta)
         return d
 
     def keys(self):
