@@ -74,8 +74,9 @@ class OpenSlideStore:
         )
         for level in range(levels):
             xshape, yshape = self._slide.level_dimensions[level]
-            meta = dict(shape=(yshape, xshape, 4), **base_meta)
-            d[str(level) + "/" + array_meta_key] = encode_array_metadata(meta)
+            arr_key = str(level) + "/" + array_meta_key
+            arr_meta = dict(shape=(yshape, xshape, 4), **base_meta)
+            d[arr_key] = encode_array_metadata(arr_meta)
         return d
 
     def keys(self):
