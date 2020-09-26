@@ -1,13 +1,14 @@
-import numpy as np
-from napari_plugin_engine import napari_hook_implementation
-from openslide import OpenSlide, OpenSlideUnsupportedFormatError, PROPERTY_NAME_COMMENT
-import dask.array as da
 from pathlib import Path
 
+import numpy as np
+
+import dask.array as da
 import zarr
-from zarr.util import json_dumps
-from zarr.storage import array_meta_key, group_meta_key, attrs_key
+from napari_plugin_engine import napari_hook_implementation
+from openslide import PROPERTY_NAME_COMMENT, OpenSlide, OpenSlideUnsupportedFormatError
 from zarr.meta import encode_array_metadata, encode_group_metadata
+from zarr.storage import array_meta_key, attrs_key, group_meta_key
+from zarr.util import json_dumps
 
 
 def encode_root_attrs(levels):

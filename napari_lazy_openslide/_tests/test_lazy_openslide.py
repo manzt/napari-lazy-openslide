@@ -1,6 +1,8 @@
-import numpy as np
-from napari_lazy_openslide import napari_get_reader
 from pathlib import Path
+
+import numpy as np
+
+from napari_lazy_openslide import napari_get_reader
 
 fixture_dir = Path.cwd() / ".." / ".." / "fixtures"
 
