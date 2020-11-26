@@ -23,6 +23,9 @@ https://napari.org/docs/plugins/index.html
 
 **Step 1.)** Make sure you have OpenSlide installed. Download instructions [here](https://openslide.org/download/).
 
+> NOTE: Installation on macOS is easiest via Homebrew: `brew install openslide`. Up-to-date and multiplatform 
+> binaries for `openslide` are also avaiable via `conda`: `conda install -c sdvillal openslide-python`
+
 **Step 2.)** Install `napari-lazy-openslide` via [pip]:
 
     pip install napari-lazy-openslide
