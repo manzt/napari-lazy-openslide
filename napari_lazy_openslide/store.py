@@ -1,10 +1,10 @@
+from ctypes import ArgumentError
 from pathlib import Path
 from typing import Any, Dict, Mapping, MutableMapping
 
 import numpy as np
 from openslide import OpenSlide
-
-from zarr.storage import init_array, init_group, _path_to_prefix, attrs_key
+from zarr.storage import _path_to_prefix, attrs_key, init_array, init_group
 from zarr.util import json_dumps, normalize_storage_path
 
 
@@ -75,6 +75,9 @@ class OpenSlideStore(Mapping):
             location = self._ref_pos(x, y, level)
             size = (self._tilesize, self._tilesize)
             tile = self._slide.read_region(location, level, size)
+        except ArgumentError as err:
+            # Can occur if trying to read a closed slide
+            raise err
         except:
             # TODO: probably need better error handling.
             # If anything goes wrong, we just signal the chunk
@@ -96,7 +99,7 @@ class OpenSlideStore(Mapping):
         return self.keys()
 
     def __len__(self):
-        return sum(1 for _ in self.keys)
+        return sum(1 for _ in self)
 
     def __enter__(self):
         return self
