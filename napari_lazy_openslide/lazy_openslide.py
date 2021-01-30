@@ -1,89 +1,9 @@
-from pathlib import Path
-
-import numpy as np
-
 import dask.array as da
 import zarr
 from napari_plugin_engine import napari_hook_implementation
 from openslide import PROPERTY_NAME_COMMENT, OpenSlide, OpenSlideUnsupportedFormatError
-from zarr.meta import encode_array_metadata, encode_group_metadata
-from zarr.storage import array_meta_key, attrs_key, group_meta_key
-from zarr.util import json_dumps
 
-
-def encode_root_attrs(levels):
-    datasets = [{"path": str(i)} for i in range(levels)]
-    root_attrs = dict(multiscales=[dict(datasets=datasets, version="0.1")])
-    return json_dumps(root_attrs)
-
-
-class OpenSlideStore:
-    def __init__(self, path, tilesize=1024, compressor=None):
-        self._compressor = compressor
-        self._slide = OpenSlide(path)
-        self._tilesize = tilesize
-        self._store = self._init_store()
-
-    def __getitem__(self, key):
-        if key in self._store:
-            # ascii encoded json metadata
-            return self._store[key]
-        # key should now be a path to an array chunk
-        # e.g '3/4.5.0' -> '<level>/<chunk_key>'
-        try:
-            level, chunk_key = key.split("/")
-            level = int(level)
-            tile = self._slide.read_region(
-                location=self._get_reference_pos(chunk_key, level),
-                level=level,
-                size=(self._tilesize, self._tilesize),
-            )
-        except:
-            raise KeyError
-        # convert to numpy array and get underlying bytes
-        dbytes = np.array(tile).tobytes()
-        if self._compressor:
-            # If a zarr compressor is provided, compress the bytes
-            # This is completely optional and only useful when
-            # remote access to the store is desired.
-            return self._compressor.encode(dbytes)
-        return dbytes
-
-    def _get_reference_pos(self, chunk_key, level):
-        # Don't need channel key, always 0
-        y, x, _ = [int(k) for k in chunk_key.split(".")]
-        dsample = self._slide.level_downsamples[level]
-        xref = int(x * dsample * self._tilesize)
-        yref = int(y * dsample * self._tilesize)
-        return xref, yref
-
-    def _init_store(self):
-        d = dict()
-        levels = self._slide.level_count
-        # Create group and add multiscale metadata
-        d[group_meta_key] = encode_group_metadata()
-        d[attrs_key] = encode_root_attrs(levels)
-        # Create array metadata for each pyramid level
-        base_meta = dict(
-            chunks=(self._tilesize, self._tilesize, 4),
-            compressor=self._compressor.get_config() if self._compressor else None,
-            dtype=np.dtype("uint8"),
-            fill_value=0,
-            filters=None,
-            order="C",
-        )
-        for level in range(levels):
-            xshape, yshape = self._slide.level_dimensions[level]
-            arr_key = str(level) + "/" + array_meta_key
-            arr_meta = dict(shape=(yshape, xshape, 4), **base_meta)
-            d[arr_key] = encode_array_metadata(arr_meta)
-        return d
-
-    def keys(self):
-        return self._store.keys()
-
-    def __iter__(self):
-        return iter(self._store)
+from .store import OpenSlideStore
 
 
 @napari_hook_implementation
@@ -105,14 +25,12 @@ def napari_get_reader(path):
         # Don't handle multiple paths
         return None
 
-    # OpenSlide supports many different formats, but I've only tested with multiscale RGBA tiffs.
-    if not any(path.endswith(s) for s in (".tif", ".tiff")):
+    if OpenSlide.detect_format(path) is None:
         return None
 
     try:
         slide = OpenSlide(path)
     except OpenSlideUnsupportedFormatError:
-        # if openslide can't open, pass on
         return None
 
     description = slide.properties.get(PROPERTY_NAME_COMMENT)
@@ -121,7 +39,7 @@ def napari_get_reader(path):
     if description and description[-4:] == "OME>":
         return None
 
-    # Don't try to handle tifs that OpenSlide doesn't recognize as multiscale.
+    # Don't try to handle files that aren't multiscale.
     if slide.level_count == 1:
         return None
 
@@ -143,8 +61,11 @@ def reader_function(path):
     layer_data : list of LayerData tuples
     """
     store = OpenSlideStore(path)
-    z_grp = zarr.open(store, mode="r")
-    datasets = z_grp.attrs["multiscales"][0]["datasets"]
-    pyramid = [da.from_zarr(store, component=d["path"]) for d in datasets]
-    add_kwargs = {"name": Path(path).name}
+    grp = zarr.open(store, mode="r")
+
+    multiscales = grp.attrs["multiscales"][0]
+    pyramid = [
+        da.from_zarr(store, component=d["path"]) for d in multiscales["datasets"]
+    ]
+    add_kwargs = {"name": multiscales["name"]}
     return [(pyramid, add_kwargs)]

@@ -3,8 +3,7 @@ try:
 except ImportError:
     __version__ = "unknown"
 
-# replace the asterisk with named imports
-from .lazy_openslide import napari_get_reader, OpenSlideStore
-
+from .lazy_openslide import napari_get_reader
+from .store import OpenSlideStore
 
 __all__ = ["napari_get_reader"]
