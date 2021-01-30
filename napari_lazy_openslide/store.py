@@ -96,7 +96,7 @@ class OpenSlideStore(Mapping):
         )
 
     def __iter__(self):
-        return self.keys()
+        return iter(self.keys())
 
     def __len__(self):
         return sum(1 for _ in self)
@@ -118,3 +118,8 @@ class OpenSlideStore(Mapping):
 
     def close(self):
         self._slide.close()
+
+if __name__ == '__main__':
+    import sys
+    store = OpenSlideStore(sys.argv[1])
+    
