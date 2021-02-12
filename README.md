@@ -24,6 +24,8 @@ This [napari] plugin was generated with [Cookiecutter] using with [@napari]'s [c
 
 ## Usage
 
+### Napari plugin
+
 This plugin attempts to read image formats recognized by `openslide` that are multiscale 
 (`openslide.OpenSlide.level_count > 1`). The `OpenSlideStore` class wraps an `OpenSlide`
 object with as a valid Zarr store. The underlying `openslide` image pyramid is translated
@@ -40,16 +42,17 @@ $ napari tumor_004.tif
 ![Interactive deep zoom of whole-slide image](tumor_004.gif)
 
 
-The `OpenSlideStore` is exported for use with `zarr` and optionally `dask` outside of `napari`.
+### Using `OpenSlideStore` with Zarr
+
+The `OpenSlideStore` is exported for use with `zarr` and `dask` outside of `napari`.
 
 ```python
 import dask.array as da
 import zarr
-import sys
 
 from napari_lazy_openslide import OpenSlideStore
 
-store = OpenSlideStore(sys.argv[1])
+store = OpenSlideStore('tumor_004.tif')
 grp = zarr.open(store, mode="r")
 
 # The OpenSlideStore implements the multiscales extension
