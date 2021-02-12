@@ -26,25 +26,25 @@ This [napari] plugin was generated with [Cookiecutter] using with [@napari]'s [c
 
 ### Napari plugin
 
-This plugin attempts to read image formats recognized by `openslide` that are multiscale 
-(`openslide.OpenSlide.level_count > 1`). The `OpenSlideStore` class wraps an `OpenSlide`
-object with as a valid Zarr store. The underlying `openslide` image pyramid is translated
-to the Zarr multiscales extension, where each level of the pyramid is a separate 3D 
-`zarr.Array` with shape `(y, x, 4)`.
-
-The plugin is experimental and has only been tested with `CAMELYON16` and `CAMELYON17` datasets, 
-which can be downloaded [here](https://camelyon17.grand-challenge.org/Data/).
-
 ```bash
 $ napari tumor_004.tif
 ```
+By installing this package via `pip`, the plugin should be recognized by `napari`. The plugin
+attempts to read image formats recognized by `openslide` that are multiscale 
+(`openslide.OpenSlide.level_count > 1`). 
+
+It should be noted that `napari-lazy-openslide` is experimental and has primarily 
+been tested with `CAMELYON16` and `CAMELYON17` datasets, which can be 
+downloaded [here](https://camelyon17.grand-challenge.org/Data/).
 
 ![Interactive deep zoom of whole-slide image](tumor_004.gif)
 
 
-### Using `OpenSlideStore` with Zarr
+### Using `OpenSlideStore` with Zarr and Dask
 
-The `OpenSlideStore` is exported for use with `zarr` and `dask` outside of `napari`.
+The `OpenSlideStore` class wraps an `openslide.OpenSlide` object as a valid Zarr store. 
+The underlying `openslide` image pyramid is translated to the Zarr multiscales extension,
+where each level of the pyramid is a separate 3D `zarr.Array` with shape `(y, x, 4)`.
 
 ```python
 import dask.array as da
