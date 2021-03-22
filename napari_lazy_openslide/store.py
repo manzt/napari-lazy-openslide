@@ -78,7 +78,7 @@ class OpenSlideStore(Mapping):
         except ArgumentError as err:
             # Can occur if trying to read a closed slide
             raise err
-        except:
+        except Exception:
             # TODO: probably need better error handling.
             # If anything goes wrong, we just signal the chunk
             # is missing from the store.
@@ -119,7 +119,8 @@ class OpenSlideStore(Mapping):
     def close(self):
         self._slide.close()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     import sys
+
     store = OpenSlideStore(sys.argv[1])
-    
