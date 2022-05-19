@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8]
+        python-version: [3.7, 3.8, 3.9]
 
     steps:
       - uses: actions/checkout@v2
@@ -26,9 +26,9 @@ jobs:
       - name: Test with tox
         run: tox
 
-  # minimizing matrix by only testing 3.6 on mac & windows
+  # minimizing matrix by only testing 3.9 on mac & windows
   mac-win:
-    name: ${{ matrix.platform }} (3.6)
+    name: ${{ matrix.platform }} (3.9)
     runs-on: ${{ matrix.platform }}
     strategy:
       matrix:
@@ -39,10 +39,10 @@ jobs:
       - name: Install openslide on mac
         if: ${{ matrix.platform == 'macos-latest' }}
         run: brew install openslide
-      - name: Set up Python 3.6
+      - name: Set up Python 3.9
         uses: actions/setup-python@v1
         with:
-          python-version: 3.6
+          python-version: 3.9
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip

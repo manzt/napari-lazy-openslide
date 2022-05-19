@@ -4,7 +4,8 @@ from typing import Any, Dict, Mapping, MutableMapping
 
 import numpy as np
 from openslide import OpenSlide
-from zarr.storage import _path_to_prefix, attrs_key, init_array, init_group
+
+from zarr.storage import _path_to_prefix, attrs_key, init_array, init_group, BaseStore
 from zarr.util import json_dumps, normalize_storage_path
 
 
@@ -46,8 +47,7 @@ def _parse_chunk_path(path: str):
     y, x, _ = map(int, ckey.split("."))
     return x, y, int(level)
 
-
-class OpenSlideStore(Mapping):
+class OpenSlideStore(BaseStore):
     """Wraps an OpenSlide object as a multiscale Zarr Store.
 
     Parameters
@@ -94,6 +94,12 @@ class OpenSlideStore(Mapping):
             isinstance(other, OpenSlideStore)
             and self._slide._filename == other._slide._filename
         )
+
+    def __setitem__(self, key, val):
+        raise RuntimeError("__setitem__ not implemented")
+
+    def __delitem__(self, key):
+        raise RuntimeError("__setitem__ not implemented")
 
     def __iter__(self):
         return iter(self.keys())
