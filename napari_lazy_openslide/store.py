@@ -131,10 +131,9 @@ class OpenSlideStore(BaseStore):
         return {"_path": self._path, "_tilesize": self._tilesize}
 
     def __setstate__(self, newstate):
-        self._path = newstate["_path"]
-        self._tilesize = newstate["_tilesize"]
-        self._slide = OpenSlide(self._path)
-        self._store = create_meta_store(self._slide, self._tilesize)
+        path = newstate["_path"]
+        tilesize = newstate["_tilesize"]
+        self.__init__(path, tilesize)
 
 
 if __name__ == "__main__":
