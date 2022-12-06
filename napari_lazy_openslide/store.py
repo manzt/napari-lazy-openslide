@@ -47,6 +47,7 @@ def _parse_chunk_path(path: str):
     y, x, _ = map(int, ckey.split("."))
     return x, y, int(level)
 
+
 class OpenSlideStore(BaseStore):
     """Wraps an OpenSlide object as a multiscale Zarr Store.
 
@@ -59,6 +60,7 @@ class OpenSlideStore(BaseStore):
     """
 
     def __init__(self, path: str, tilesize: int = 512):
+        self._path = path
         self._slide = OpenSlide(path)
         self._tilesize = tilesize
         self._store = create_meta_store(self._slide, tilesize)
@@ -124,6 +126,14 @@ class OpenSlideStore(BaseStore):
 
     def close(self):
         self._slide.close()
+
+    def __getstate__(self):
+        return {"_path": self._path, "_tilesize": self._tilesize}
+
+    def __setstate__(self, newstate):
+        path = newstate["_path"]
+        tilesize = newstate["_tilesize"]
+        self.__init__(path, tilesize)
 
 
 if __name__ == "__main__":
