@@ -5,7 +5,7 @@ from typing import Any, Dict, Mapping, MutableMapping
 import numpy as np
 from openslide import OpenSlide
 
-from zarr.storage import _path_to_prefix, attrs_key, init_array, init_group, BaseStore
+from zarr.storage import _path_to_prefix, attrs_key, init_array, init_group, Store
 from zarr.util import json_dumps, normalize_storage_path
 
 
@@ -47,7 +47,7 @@ def _parse_chunk_path(path: str):
     y, x, _ = map(int, ckey.split("."))
     return x, y, int(level)
 
-class OpenSlideStore(BaseStore):
+class OpenSlideStore(Store):
     """Wraps an OpenSlide object as a multiscale Zarr Store.
 
     Parameters
@@ -85,6 +85,9 @@ class OpenSlideStore(BaseStore):
             raise KeyError(key)
 
         return np.array(tile).tobytes()
+
+    def getitems(self, keys, *, contexts):
+        return {k: self[k] for k in keys}
 
     def __contains__(self, key: str):
         return key in self._store
